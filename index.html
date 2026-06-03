@@ -352,18 +352,20 @@ function checkReady() {
 }
 
 // ── 导出图像 ──────────────────────────────────────────────────────────────────
-function getExportSize() {
-  const s = Math.min(512 / origImg.width, 512 / origImg.height, 1);
-  return { w: Math.round(origImg.width * s / 8) * 8, h: Math.round(origImg.height * s / 8) * 8 };
+const MAX_PX = 384; // 控制总体积，三图加起来 < 4MB
+
+function calcSize(w, h) {
+  const s = Math.min(MAX_PX / w, MAX_PX / h, 1);
+  return { w: Math.round(w * s / 8) * 8, h: Math.round(h * s / 8) * 8 };
 }
 function getOrigDataUrl() {
-  const { w, h } = getExportSize();
+  const { w, h } = calcSize(origImg.width, origImg.height);
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   c.getContext('2d').drawImage(origImg, 0, 0, w, h);
-  return c.toDataURL('image/jpeg', 0.92);
+  return c.toDataURL('image/jpeg', 0.85);
 }
 function getMaskDataUrl() {
-  const { w, h } = getExportSize();
+  const { w, h } = calcSize(origImg.width, origImg.height);
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
@@ -373,6 +375,18 @@ function getMaskDataUrl() {
   for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i]=v; d.data[i+1]=v; d.data[i+2]=v; d.data[i+3]=255; }
   ctx.putImageData(d, 0, 0);
   return c.toDataURL('image/png');
+}
+function getRefDataUrl() {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const { w, h } = calcSize(img.width, img.height);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = refDataUrl;
+  });
 }
 
 // ── 生成 ──────────────────────────────────────────────────────────────────────
@@ -394,7 +408,7 @@ async function runReplace() {
         password:        sitePassword,
         image:           getOrigDataUrl(),
         mask:            getMaskDataUrl(),
-        reference_image: refDataUrl,
+        reference_image: await getRefDataUrl(),
       }),
     });
     const submitData = await submitRes.json();
