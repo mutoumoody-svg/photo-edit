@@ -1,4 +1,6 @@
-// 接收三个图片 URL（已上传），提交 Replicate 任务
+export const config = {
+  api: { bodyParser: { sizeLimit: '6mb' } },
+};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,13 +9,12 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { password, imageUrl, maskUrl, referenceUrl } = req.body;
+  const { password, image, mask, reference_image } = req.body;
 
   const SITE_PASSWORD = process.env.SITE_PASSWORD;
   if (SITE_PASSWORD && password !== SITE_PASSWORD) {
     return res.status(401).json({ error: '密码错误' });
   }
-
   const REPLICATE_KEY = process.env.REPLICATE_KEY;
   if (!REPLICATE_KEY) return res.status(500).json({ error: '服务端未配置 API Key' });
 
@@ -23,67 +24,54 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Step 1: 用视觉模型分析参考产品图，自动生成 prompt
+    // Step 1: 视觉模型分析参考图，生成 prompt
     let prompt = 'a product, clean, photorealistic, high quality';
-
-    if (referenceUrl) {
+    if (reference_image) {
       try {
-        const visionRes = await fetch('https://api.replicate.com/v1/predictions', {
-          method: 'POST',
-          headers,
+        const vRes = await fetch('https://api.replicate.com/v1/predictions', {
+          method: 'POST', headers,
           body: JSON.stringify({
             version: '80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb',
             input: {
-              image: referenceUrl,
-              question: 'Describe this product briefly for image generation: shape, color, material, style. One sentence only.',
+              image: reference_image,
+              question: 'Describe this product in one sentence: shape, color, material, style.',
             },
           }),
         });
-
-        if (visionRes.ok) {
-          let vPred = await visionRes.json();
-          let attempts = 0;
-          while (vPred.status !== 'succeeded' && vPred.status !== 'failed' && attempts < 20) {
+        if (vRes.ok) {
+          let vp = await vRes.json();
+          for (let i = 0; i < 15 && vp.status !== 'succeeded' && vp.status !== 'failed'; i++) {
             await sleep(1500);
-            attempts++;
-            const poll = await fetch(`https://api.replicate.com/v1/predictions/${vPred.id}`, { headers });
-            vPred = await poll.json();
+            const p = await fetch(`https://api.replicate.com/v1/predictions/${vp.id}`, { headers });
+            vp = await p.json();
           }
-          if (vPred.status === 'succeeded' && vPred.output) {
-            const desc = Array.isArray(vPred.output) ? vPred.output.join('') : vPred.output;
-            prompt = `${desc}, product photography, photorealistic, high quality, clean background`;
+          if (vp.status === 'succeeded' && vp.output) {
+            const desc = Array.isArray(vp.output) ? vp.output.join('') : vp.output;
+            prompt = `${desc}, product photography, photorealistic, high quality`;
           }
         }
-      } catch (e) {
-        console.error('Vision step failed:', e.message);
-      }
+      } catch (e) { /* 视觉失败不影响主流程 */ }
     }
 
-    // Step 2: 提交 SDXL Inpainting
-    const inpaintRes = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers,
+    // Step 2: SDXL Inpainting
+    const ir = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST', headers,
       body: JSON.stringify({
         version: 'a5b13068cc81a89a4fbeefeccc774869fcb34df4dbc92c1555e0f2771d49dde7',
         input: {
-          image: imageUrl,
-          mask: maskUrl,
-          prompt,
+          image, mask, prompt,
           negative_prompt: 'blurry, deformed, ugly, bad quality, watermark, text',
           num_inference_steps: 30,
           guidance_scale: 7.5,
         },
       }),
     });
-
-    if (!inpaintRes.ok) {
-      const err = await inpaintRes.json().catch(() => ({}));
-      return res.status(inpaintRes.status).json({ error: err.detail || 'Replicate 提交失败' });
+    if (!ir.ok) {
+      const err = await ir.json().catch(() => ({}));
+      return res.status(ir.status).json({ error: err.detail || 'Replicate 提交失败' });
     }
-
-    const pred = await inpaintRes.json();
-    return res.status(200).json({ id: pred.id, status: pred.status, prompt });
-
+    const pred = await ir.json();
+    return res.status(200).json({ id: pred.id, status: pred.status });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

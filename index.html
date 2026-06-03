@@ -352,7 +352,7 @@ function checkReady() {
 }
 
 // ── 导出图像 ──────────────────────────────────────────────────────────────────
-const MAX_PX = 384; // 控制总体积，三图加起来 < 4MB
+const MAX_PX = 256; // 严格限制体积，三图加起来 < 500KB
 
 function calcSize(w, h) {
   const s = Math.min(MAX_PX / w, MAX_PX / h, 1);
@@ -362,7 +362,7 @@ function getOrigDataUrl() {
   const { w, h } = calcSize(origImg.width, origImg.height);
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   c.getContext('2d').drawImage(origImg, 0, 0, w, h);
-  return c.toDataURL('image/jpeg', 0.85);
+  return c.toDataURL('image/jpeg', 0.75);
 }
 function getMaskDataUrl() {
   const { w, h } = calcSize(origImg.width, origImg.height);
@@ -383,7 +383,7 @@ function getRefDataUrl() {
       const { w, h } = calcSize(img.width, img.height);
       const c = document.createElement('canvas'); c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(c.toDataURL('image/jpeg', 0.85));
+      resolve(c.toDataURL('image/jpeg', 0.75));
     };
     img.src = refDataUrl;
   });
@@ -411,22 +411,16 @@ async function runReplace() {
   document.getElementById('dl-btn').style.display = 'none';
 
   try {
-    // Step 1: 分别上传三张图片
-    setStatus('on', '上传原始照片…');
-    const imageUrl = await uploadImage(getOrigDataUrl());
-
-    setStatus('on', '上传遮罩…');
-    const maskUrl = await uploadImage(getMaskDataUrl());
-
-    setStatus('on', '上传参考产品图…');
-    const referenceUrl = await uploadImage(await getRefDataUrl());
-
-    // Step 2: 提交替换任务
-    setStatus('on', '分析产品外观，提交生成任务…');
+    setStatus('on', '处理图像，提交任务…');
     const submitRes = await fetch('/api/replace', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: sitePassword, imageUrl, maskUrl, referenceUrl }),
+      body: JSON.stringify({
+        password:        sitePassword,
+        image:           getOrigDataUrl(),
+        mask:            getMaskDataUrl(),
+        reference_image: await getRefDataUrl(),
+      }),
     });
     const submitData = await submitRes.json();
     if (!submitRes.ok) throw new Error(submitData.error || `HTTP ${submitRes.status}`);
