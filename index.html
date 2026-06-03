@@ -8,7 +8,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
 
-  /* ── 密码弹窗 ── */
+  /* 密码锁 */
   #lock-screen { position: fixed; inset: 0; background: #0f0f0f; z-index: 999; display: flex; align-items: center; justify-content: center; }
   .lock-box { background: #161616; border: 1px solid #222; border-radius: 14px; padding: 40px 36px; width: 320px; display: flex; flex-direction: column; gap: 16px; }
   .lock-box h2 { font-size: 16px; font-weight: 600; }
@@ -17,7 +17,6 @@
   .lock-input:focus { outline: none; border-color: #5b7fff66; }
   .lock-btn { background: #5b7fff; color: #fff; border: none; border-radius: 7px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .lock-btn:hover { background: #4a6eef; }
-  .lock-err { font-size: 12px; color: #f55; display: none; }
 
   header { padding: 16px 28px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; gap: 14px; }
   header h1 { font-size: 16px; font-weight: 600; }
@@ -26,20 +25,23 @@
   .main { display: grid; grid-template-columns: 1fr 260px 1fr; gap: 12px; padding: 14px 16px; height: calc(100vh - 53px); }
 
   .panel { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
-  .panel-header { padding: 11px 14px; border-bottom: 1px solid #1e1e1e; font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 8px; }
+  .panel-header { padding: 11px 14px; border-bottom: 1px solid #1e1e1e; font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .badge { background: #222; border-radius: 4px; padding: 1px 7px; font-size: 10px; color: #666; }
-  .panel-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .panel-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 
+  /* 上传区 */
   .upload-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 2px dashed #1e1e1e; margin: 10px; border-radius: 8px; transition: all .15s; }
   .upload-zone:hover, .upload-zone.drag-over { border-color: #333; background: #191919; }
   .upload-zone p { font-size: 12px; color: #444; text-align: center; line-height: 1.6; }
   .upload-zone input[type=file] { display: none; }
 
-  .canvas-wrap { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; }
+  /* Canvas */
+  .canvas-wrap { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; min-height: 0; }
   canvas { display: block; }
   #mask-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); cursor: crosshair; }
   #brush-ring { position: absolute; border: 1.5px solid rgba(255,90,90,.8); border-radius: 50%; pointer-events: none; background: rgba(255,60,60,.12); transform: translate(-50%,-50%); display: none; }
 
+  /* 工具栏 */
   .toolbar { padding: 8px 12px; border-top: 1px solid #1a1a1a; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .toolbar label { font-size: 11px; color: #555; }
   input[type=range] { width: 72px; accent-color: #5b7fff; }
@@ -51,15 +53,9 @@
   .btn-red:hover { background: #331a1a; }
   .mask-pct { font-size: 11px; color: #555; margin-left: auto; }
 
+  /* 中间面板 */
   .mid .panel-body { padding: 12px; gap: 10px; overflow-y: auto; display: flex; flex-direction: column; }
   .slabel { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
-
-  .ref-box { width: 100%; aspect-ratio: 1; border-radius: 8px; background: #1a1a1a; border: 1px solid #222; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
-  .ref-box img { width: 100%; height: 100%; object-fit: contain; }
-  .ref-box .ov { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; font-size: 11px; color: #ddd; }
-  .ref-box:hover .ov { display: flex; }
-  .ref-box input[type=file] { display: none; }
-
   .tip { font-size: 11px; color: #444; line-height: 1.55; }
   .divider { height: 1px; background: #1a1a1a; flex-shrink: 0; }
 
@@ -69,11 +65,16 @@
   .step.done .step-num { background: #1a2e1a; border-color: #2a4a2a; color: #5cb; }
   .step.done { color: #3a5a3a; }
 
+  textarea { width: 100%; background: #1a1a1a; border: 1px solid #222; border-radius: 6px; padding: 8px; font-size: 12px; color: #ccc; resize: vertical; min-height: 90px; font-family: inherit; line-height: 1.5; }
+  textarea:focus { outline: none; border-color: #5b7fff44; }
+  textarea::placeholder { color: #333; }
+
   .run-btn { width: 100%; padding: 11px; border-radius: 7px; border: none; background: #5b7fff; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: auto; flex-shrink: 0; transition: background .15s; }
   .run-btn:hover:not(:disabled) { background: #4a6eef; }
   .run-btn:disabled { background: #151525; color: #334; cursor: not-allowed; }
 
-  .result-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; }
+  /* 结果 */
+  .result-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; min-height: 0; }
   .result-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
   .ph { font-size: 12px; color: #333; text-align: center; line-height: 1.8; }
 
@@ -99,7 +100,6 @@
     <h2>产品替换工具</h2>
     <p>请输入访问密码</p>
     <input type="password" class="lock-input" id="lock-input" placeholder="密码" onkeydown="if(event.key==='Enter')unlock()">
-    <p class="lock-err" id="lock-err">密码错误，请重试</p>
     <button class="lock-btn" onclick="unlock()">进入</button>
   </div>
 </div>
@@ -107,8 +107,7 @@
 <header>
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b7fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
   <h1>产品替换工具</h1>
-  <span class="model-tag">Paint-by-Example</span>
-  <span style="font-size:11px;color:#333;margin-left:4px">三图输入 · 无需文字描述 · 参考图直接驱动</span>
+  <span class="model-tag">SDXL Inpainting</span>
 </header>
 
 <div class="main">
@@ -116,11 +115,10 @@
   <!-- 原图 + 遮罩 -->
   <div class="panel">
     <div class="panel-header">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
       原始照片 — 涂抹要替换的产品
       <span class="badge" id="orig-badge">未上传</span>
       <div style="flex:1"></div>
-      <button class="btn btn-red" id="clear-orig-btn" style="display:none" onclick="clearOriginal()">重置</button>
+      <button class="btn btn-red" id="clear-btn" style="display:none" onclick="clearOriginal()">重置</button>
     </div>
     <div class="panel-body">
       <div class="upload-zone" id="upload-zone"
@@ -151,23 +149,21 @@
 
   <!-- 控制面板 -->
   <div class="panel mid">
-    <div class="panel-header">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      控制
-    </div>
+    <div class="panel-header">控制</div>
     <div class="panel-body">
+
       <div class="steps">
         <div class="step" id="s1"><div class="step-num">1</div>上传原始照片</div>
         <div class="step" id="s2"><div class="step-num">2</div>用画笔涂抹要替换的产品</div>
-        <div class="step" id="s3"><div class="step-num">3</div>填写替换产品描述</div>
+        <div class="step" id="s3"><div class="step-num">3</div>填写替换产品描述（可选）</div>
       </div>
 
       <div class="divider"></div>
 
       <div>
         <div class="slabel">替换产品描述</div>
-        <textarea id="product-desc" placeholder="例：一瓶白色极简风格护肤乳液，磨砂质感瓶身&#10;描述越具体效果越好" style="width:100%;background:#1a1a1a;border:1px solid #222;border-radius:6px;padding:8px;font-size:12px;color:#ccc;resize:vertical;min-height:80px;font-family:inherit;line-height:1.5"></textarea>
-        <p class="tip" style="margin-top:6px">用文字描述要替换进去的产品外观<br>包括颜色、材质、形状、风格</p>
+        <textarea id="product-desc" placeholder="例：一瓶白色极简风格护肤乳液，磨砂质感瓶身&#10;描述越具体效果越好&#10;留空则用默认 prompt"></textarea>
+        <p class="tip" style="margin-top:6px">描述要替换进去的产品外观<br>包括颜色、材质、形状、风格</p>
       </div>
 
       <button class="run-btn" id="run-btn" onclick="runReplace()" disabled>生成替换图</button>
@@ -177,13 +173,12 @@
   <!-- 结果 -->
   <div class="panel">
     <div class="panel-header">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
       生成结果
       <span class="badge" id="res-badge">等待</span>
     </div>
     <div class="panel-body">
       <div class="result-wrap" id="result-wrap">
-        <p class="ph">完成左侧三步<br>点击「生成替换图」</p>
+        <p class="ph">完成左侧步骤后<br>点击「生成替换图」</p>
       </div>
       <div class="status-bar">
         <div class="dot" id="s-dot"></div>
@@ -201,14 +196,12 @@
 let sitePassword = '';
 function unlock() {
   const pw = document.getElementById('lock-input').value.trim();
-  if (!pw) return;
   sitePassword = pw;
-  // 先试一个假请求验证密码，直接隐藏锁屏（实际密码在服务端验证，生成时才校验）
   document.getElementById('lock-screen').style.display = 'none';
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let origImg = null, refDataUrl = null, painting = false, maskVisible = false, resultUrl = null;
+let origImg = null, painting = false, maskVisible = false, resultUrl = null;
 const OC = document.getElementById('orig-canvas');
 const MC = document.getElementById('mask-canvas');
 const oc = OC.getContext('2d');
@@ -232,7 +225,7 @@ function readOrig(file) {
       document.getElementById('upload-zone').style.display = 'none';
       document.getElementById('canvas-wrap').style.display = 'flex';
       document.getElementById('toolbar').style.display = 'flex';
-      document.getElementById('clear-orig-btn').style.display = '';
+      document.getElementById('clear-btn').style.display = '';
       document.getElementById('orig-badge').textContent = `${img.width}×${img.height}`;
       requestAnimationFrame(() => { setupCanvas(img); updateSteps(); checkReady(); });
     };
@@ -245,7 +238,7 @@ function clearOriginal() {
   document.getElementById('upload-zone').style.display = '';
   document.getElementById('canvas-wrap').style.display = 'none';
   document.getElementById('toolbar').style.display = 'none';
-  document.getElementById('clear-orig-btn').style.display = 'none';
+  document.getElementById('clear-btn').style.display = 'none';
   document.getElementById('orig-badge').textContent = '未上传';
   document.getElementById('orig-input').value = '';
   updateSteps(); checkReady();
@@ -259,25 +252,6 @@ function setupCanvas(img) {
   OC.width = w; OC.height = h; MC.width = w; MC.height = h;
   oc.drawImage(img, 0, 0, w, h);
   mc.clearRect(0, 0, w, h);
-}
-
-// ── 参考图 ────────────────────────────────────────────────────────────────────
-function loadRef(e) {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    refDataUrl = ev.target.result;
-    const box = document.getElementById('ref-box');
-    let img = box.querySelector('img');
-    if (!img) {
-      box.querySelector('svg').style.display = 'none';
-      img = document.createElement('img');
-      box.insertBefore(img, box.querySelector('.ov'));
-    }
-    img.src = ev.target.result;
-    updateSteps(); checkReady();
-  };
-  r.readAsDataURL(f);
 }
 
 // ── 画笔 ──────────────────────────────────────────────────────────────────────
@@ -297,7 +271,11 @@ function dot(p) {
   mc.fillStyle = 'rgba(255,60,60,0.6)'; mc.fill();
   refreshMaskPct();
 }
-function startPaint(e) { painting = true; mc.globalCompositeOperation = e.button === 2 ? 'destination-out' : 'source-over'; dot(pos(e)); }
+function startPaint(e) {
+  painting = true;
+  mc.globalCompositeOperation = e.button === 2 ? 'destination-out' : 'source-over';
+  dot(pos(e));
+}
 function movePaint(e) { if (painting) dot(pos(e)); }
 function stopPaint() { painting = false; }
 function leavePaint() { stopPaint(); document.getElementById('brush-ring').style.display = 'none'; }
@@ -314,7 +292,7 @@ function toggleMask() {
     const tmp = document.createElement('canvas'); tmp.width = MC.width; tmp.height = MC.height;
     const tc = tmp.getContext('2d'); tc.drawImage(MC, 0, 0);
     const d = tc.getImageData(0, 0, tmp.width, tmp.height);
-    for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i] = v; d.data[i+1] = v; d.data[i+2] = v; d.data[i+3] = 255; }
+    for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i]=v; d.data[i+1]=v; d.data[i+2]=v; d.data[i+3]=255; }
     tc.putImageData(d, 0, 0); oc.drawImage(tmp, 0, 0);
   } else { oc.drawImage(origImg, 0, 0, OC.width, OC.height); }
 }
@@ -333,12 +311,12 @@ function hasMask() {
   return false;
 }
 
-// ── 步骤指示 ──────────────────────────────────────────────────────────────────
+// ── 步骤 ──────────────────────────────────────────────────────────────────────
 function updateSteps() {
-  const setStep = (id, done) => { document.getElementById(id).className = done ? 'step done' : 'step'; };
-  setStep('s1', !!origImg);
-  setStep('s2', hasMask());
-  setStep('s3', !!refDataUrl);
+  const set = (id, done) => { document.getElementById(id).className = done ? 'step done' : 'step'; };
+  set('s1', !!origImg);
+  set('s2', hasMask());
+  set('s3', true); // 描述可选，始终算完成
 }
 function checkReady() {
   document.getElementById('run-btn').disabled = !(origImg && hasMask());
@@ -346,16 +324,13 @@ function checkReady() {
 
 // ── 导出图像 ──────────────────────────────────────────────────────────────────
 function getExportSize() {
-  const W = origImg.width, H = origImg.height;
-  // 限制最大 512px，Paint-by-Example 推荐尺寸
-  const s = Math.min(512 / W, 512 / H, 1);
-  return { w: Math.round(W * s / 8) * 8, h: Math.round(H * s / 8) * 8 };
+  const s = Math.min(512 / origImg.width, 512 / origImg.height, 1);
+  return { w: Math.round(origImg.width * s / 8) * 8, h: Math.round(origImg.height * s / 8) * 8 };
 }
 function getOrigDataUrl() {
   const { w, h } = getExportSize();
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   c.getContext('2d').drawImage(origImg, 0, 0, w, h);
-  // 用 JPEG 压缩减小体积
   return c.toDataURL('image/jpeg', 0.92);
 }
 function getMaskDataUrl() {
@@ -366,35 +341,23 @@ function getMaskDataUrl() {
   const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
   const tc = tmp.getContext('2d'); tc.drawImage(MC, 0, 0, w, h);
   const d = tc.getImageData(0, 0, w, h);
-  for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i] = v; d.data[i+1] = v; d.data[i+2] = v; d.data[i+3] = 255; }
+  for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i]=v; d.data[i+1]=v; d.data[i+2]=v; d.data[i+3]=255; }
   ctx.putImageData(d, 0, 0);
-  // 遮罩必须用 PNG 保证黑白精确
   return c.toDataURL('image/png');
-}
-function getRefDataUrl() {
-  // 参考图也压缩到 512px 以内
-  const img = new Image(); img.src = refDataUrl;
-  const maxS = 512;
-  const rw = img.naturalWidth || 512, rh = img.naturalHeight || 512;
-  const s = Math.min(maxS / rw, maxS / rh, 1);
-  const c = document.createElement('canvas');
-  c.width = Math.round(rw * s / 8) * 8;
-  c.height = Math.round(rh * s / 8) * 8;
-  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.92);
 }
 
 // ── 生成 ──────────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function runReplace() {
-  setStatus('on', '准备图像数据…');
+  setStatus('on', '提交任务…');
   document.getElementById('run-btn').disabled = true;
   document.getElementById('result-wrap').innerHTML = '<div class="spinner"></div>';
   document.getElementById('res-badge').textContent = '生成中';
   document.getElementById('dl-btn').style.display = 'none';
 
   try {
-    // 第一步：提交任务
-    setStatus('on', '提交任务…');
+    // 提交任务
     const submitRes = await fetch('/api/replace', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -405,37 +368,34 @@ async function runReplace() {
         prompt:   document.getElementById('product-desc').value.trim(),
       }),
     });
-
     const submitData = await submitRes.json();
     if (!submitRes.ok) throw new Error(submitData.error || `HTTP ${submitRes.status}`);
 
     const predId = submitData.id;
     setStatus('on', '生成中，请稍候…');
 
-    // 第二步：前端轮询结果
+    // 轮询结果
     let elapsed = 0;
     while (elapsed < 300) {
       await sleep(3000);
       elapsed += 3;
       setStatus('on', `生成中… ${elapsed}s`);
-
       const pollRes = await fetch(`/api/status?id=${predId}`);
       const pollData = await pollRes.json();
-
       if (pollData.status === 'succeeded') {
         resultUrl = pollData.output;
         document.getElementById('result-wrap').innerHTML = `<img src="${resultUrl}" alt="result">`;
         document.getElementById('res-badge').textContent = '完成';
         document.getElementById('dl-btn').style.display = '';
         setStatus('ok', '生成成功 ✓');
-        break;
+        document.getElementById('run-btn').disabled = false;
+        checkReady();
+        return;
       } else if (pollData.status === 'failed') {
         throw new Error(pollData.error || '模型生成失败');
       }
-      // starting / processing 继续等
     }
-
-    if (elapsed >= 300) throw new Error('超时，请重试');
+    throw new Error('超时，请重试');
 
   } catch (e) {
     document.getElementById('result-wrap').innerHTML = `<p class="ph" style="color:#c44">${e.message}</p>`;
