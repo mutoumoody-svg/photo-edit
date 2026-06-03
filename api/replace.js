@@ -1,12 +1,4 @@
-// 两步流程：
-// 1. 用视觉模型分析参考产品图，生成描述
-// 2. 用 SDXL Inpainting 按描述替换
-
-export const config = {
-  api: {
-    bodyParser: { sizeLimit: '20mb' },
-  },
-};
+// 接收三个图片 URL（已上传），提交 Replicate 任务
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { password, image, mask, reference_image } = req.body;
+  const { password, imageUrl, maskUrl, referenceUrl } = req.body;
 
   const SITE_PASSWORD = process.env.SITE_PASSWORD;
   if (SITE_PASSWORD && password !== SITE_PASSWORD) {
@@ -31,10 +23,10 @@ export default async function handler(req, res) {
   };
 
   try {
-    // ── Step 1：用 moondream2 分析参考产品图 ──────────────────────────────────
+    // Step 1: 用视觉模型分析参考产品图，自动生成 prompt
     let prompt = 'a product, clean, photorealistic, high quality';
 
-    if (reference_image) {
+    if (referenceUrl) {
       try {
         const visionRes = await fetch('https://api.replicate.com/v1/predictions', {
           method: 'POST',
@@ -42,43 +34,42 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             version: '80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb',
             input: {
-              image: reference_image,
-              question: 'Describe this product in detail for image generation: its shape, color, material, style, and packaging. Be concise and specific.',
+              image: referenceUrl,
+              question: 'Describe this product briefly for image generation: shape, color, material, style. One sentence only.',
             },
           }),
         });
 
         if (visionRes.ok) {
           let vPred = await visionRes.json();
-          let vAttempts = 0;
-          while (vPred.status !== 'succeeded' && vPred.status !== 'failed' && vAttempts < 20) {
+          let attempts = 0;
+          while (vPred.status !== 'succeeded' && vPred.status !== 'failed' && attempts < 20) {
             await sleep(1500);
-            vAttempts++;
+            attempts++;
             const poll = await fetch(`https://api.replicate.com/v1/predictions/${vPred.id}`, { headers });
             vPred = await poll.json();
           }
           if (vPred.status === 'succeeded' && vPred.output) {
             const desc = Array.isArray(vPred.output) ? vPred.output.join('') : vPred.output;
-            prompt = `${desc}, product photography, photorealistic, high quality, clean`;
+            prompt = `${desc}, product photography, photorealistic, high quality, clean background`;
           }
         }
       } catch (e) {
-        // 视觉分析失败则用默认 prompt，不影响主流程
         console.error('Vision step failed:', e.message);
       }
     }
 
-    // ── Step 2：提交 SDXL Inpainting ──────────────────────────────────────────
+    // Step 2: 提交 SDXL Inpainting
     const inpaintRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers,
       body: JSON.stringify({
         version: 'a5b13068cc81a89a4fbeefeccc774869fcb34df4dbc92c1555e0f2771d49dde7',
         input: {
-          image,
-          mask,
+          image: imageUrl,
+          mask: maskUrl,
           prompt,
-          negative_prompt: 'blurry, deformed, ugly, bad quality, watermark, text, extra objects',
+          negative_prompt: 'blurry, deformed, ugly, bad quality, watermark, text',
           num_inference_steps: 30,
           guidance_scale: 7.5,
         },

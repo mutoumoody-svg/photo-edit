@@ -392,6 +392,17 @@ function getRefDataUrl() {
 // ── 生成 ──────────────────────────────────────────────────────────────────────
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+async function uploadImage(dataUrl) {
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || '图片上传失败');
+  return data.url;
+}
+
 async function runReplace() {
   setStatus('on', '提交任务…');
   document.getElementById('run-btn').disabled = true;
@@ -400,16 +411,22 @@ async function runReplace() {
   document.getElementById('dl-btn').style.display = 'none';
 
   try {
-    // 提交任务
+    // Step 1: 分别上传三张图片
+    setStatus('on', '上传原始照片…');
+    const imageUrl = await uploadImage(getOrigDataUrl());
+
+    setStatus('on', '上传遮罩…');
+    const maskUrl = await uploadImage(getMaskDataUrl());
+
+    setStatus('on', '上传参考产品图…');
+    const referenceUrl = await uploadImage(await getRefDataUrl());
+
+    // Step 2: 提交替换任务
+    setStatus('on', '分析产品外观，提交生成任务…');
     const submitRes = await fetch('/api/replace', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password:        sitePassword,
-        image:           getOrigDataUrl(),
-        mask:            getMaskDataUrl(),
-        reference_image: await getRefDataUrl(),
-      }),
+      body: JSON.stringify({ password: sitePassword, imageUrl, maskUrl, referenceUrl }),
     });
     const submitData = await submitRes.json();
     if (!submitRes.ok) throw new Error(submitData.error || `HTTP ${submitRes.status}`);
