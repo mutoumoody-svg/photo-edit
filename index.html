@@ -159,19 +159,15 @@
       <div class="steps">
         <div class="step" id="s1"><div class="step-num">1</div>上传原始照片</div>
         <div class="step" id="s2"><div class="step-num">2</div>用画笔涂抹要替换的产品</div>
-        <div class="step" id="s3"><div class="step-num">3</div>上传替换产品参考图</div>
+        <div class="step" id="s3"><div class="step-num">3</div>填写替换产品描述</div>
       </div>
 
       <div class="divider"></div>
 
       <div>
-        <div class="slabel">替换产品参考图</div>
-        <div class="ref-box" id="ref-box" onclick="document.getElementById('ref-input').click()">
-          <input type="file" id="ref-input" accept="image/*" onchange="loadRef(event)">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          <div class="ov">点击更换</div>
-        </div>
-        <p class="tip" style="margin-top:6px">建议用白底正面产品图<br>模型直接参考此图外观，无需文字描述</p>
+        <div class="slabel">替换产品描述</div>
+        <textarea id="product-desc" placeholder="例：一瓶白色极简风格护肤乳液，磨砂质感瓶身&#10;描述越具体效果越好" style="width:100%;background:#1a1a1a;border:1px solid #222;border-radius:6px;padding:8px;font-size:12px;color:#ccc;resize:vertical;min-height:80px;font-family:inherit;line-height:1.5"></textarea>
+        <p class="tip" style="margin-top:6px">用文字描述要替换进去的产品外观<br>包括颜色、材质、形状、风格</p>
       </div>
 
       <button class="run-btn" id="run-btn" onclick="runReplace()" disabled>生成替换图</button>
@@ -345,7 +341,7 @@ function updateSteps() {
   setStep('s3', !!refDataUrl);
 }
 function checkReady() {
-  document.getElementById('run-btn').disabled = !(origImg && hasMask() && refDataUrl);
+  document.getElementById('run-btn').disabled = !(origImg && hasMask());
 }
 
 // ── 导出图像 ──────────────────────────────────────────────────────────────────
@@ -403,10 +399,10 @@ async function runReplace() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        password:        sitePassword,
-        image:           getOrigDataUrl(),
-        mask:            getMaskDataUrl(),
-        reference_image: getRefDataUrl(),
+        password: sitePassword,
+        image:    getOrigDataUrl(),
+        mask:     getMaskDataUrl(),
+        prompt:   document.getElementById('product-desc').value.trim(),
       }),
     });
 

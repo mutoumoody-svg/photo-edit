@@ -25,15 +25,25 @@ export default async function handler(req, res) {
   if (!REPLICATE_KEY) return res.status(500).json({ error: '服务端未配置 API Key' });
 
   try {
+    const { prompt } = req.body;
     const createRes = await fetch(
-      'https://api.replicate.com/v1/models/Fantasy-Studio/paint-by-example/predictions',
+      'https://api.replicate.com/v1/models/stability-ai/stable-diffusion-inpainting/predictions',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${REPLICATE_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ input: { image, mask, reference_image } }),
+        body: JSON.stringify({
+          input: {
+            image,
+            mask,
+            prompt: prompt || 'product, clean, photorealistic, high quality',
+            negative_prompt: 'blurry, deformed, ugly, watermark, text',
+            num_inference_steps: 25,
+            guidance_scale: 7.5,
+          }
+        }),
       }
     );
 
