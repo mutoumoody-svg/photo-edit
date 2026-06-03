@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/replace.js": {
+      "maxDuration": 180
+    }
+  }
+}

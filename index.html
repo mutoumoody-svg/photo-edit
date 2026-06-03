@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品替换工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
+
+  /* ── 密码弹窗 ── */
+  #lock-screen { position: fixed; inset: 0; background: #0f0f0f; z-index: 999; display: flex; align-items: center; justify-content: center; }
+  .lock-box { background: #161616; border: 1px solid #222; border-radius: 14px; padding: 40px 36px; width: 320px; display: flex; flex-direction: column; gap: 16px; }
+  .lock-box h2 { font-size: 16px; font-weight: 600; }
+  .lock-box p { font-size: 12px; color: #555; }
+  .lock-input { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 7px; padding: 10px 12px; font-size: 14px; color: #ddd; width: 100%; }
+  .lock-input:focus { outline: none; border-color: #5b7fff66; }
+  .lock-btn { background: #5b7fff; color: #fff; border: none; border-radius: 7px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .lock-btn:hover { background: #4a6eef; }
+  .lock-err { font-size: 12px; color: #f55; display: none; }
+
+  header { padding: 16px 28px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 16px; font-weight: 600; }
+  .model-tag { background: #1a2a1a; color: #5ecb6b; border: 1px solid #2a3a2a; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 500; }
+
+  .main { display: grid; grid-template-columns: 1fr 260px 1fr; gap: 12px; padding: 14px 16px; height: calc(100vh - 53px); }
+
+  .panel { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .panel-header { padding: 11px 14px; border-bottom: 1px solid #1e1e1e; font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 8px; }
+  .badge { background: #222; border-radius: 4px; padding: 1px 7px; font-size: 10px; color: #666; }
+  .panel-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .upload-zone { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; border: 2px dashed #1e1e1e; margin: 10px; border-radius: 8px; transition: all .15s; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: #333; background: #191919; }
+  .upload-zone p { font-size: 12px; color: #444; text-align: center; line-height: 1.6; }
+  .upload-zone input[type=file] { display: none; }
+
+  .canvas-wrap { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; }
+  canvas { display: block; }
+  #mask-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); cursor: crosshair; }
+  #brush-ring { position: absolute; border: 1.5px solid rgba(255,90,90,.8); border-radius: 50%; pointer-events: none; background: rgba(255,60,60,.12); transform: translate(-50%,-50%); display: none; }
+
+  .toolbar { padding: 8px 12px; border-top: 1px solid #1a1a1a; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .toolbar label { font-size: 11px; color: #555; }
+  input[type=range] { width: 72px; accent-color: #5b7fff; }
+  .sz { font-size: 11px; color: #555; min-width: 28px; }
+  .btn { padding: 5px 11px; border-radius: 5px; border: none; font-size: 11px; font-weight: 500; cursor: pointer; }
+  .btn-ghost { background: #1e1e1e; color: #888; }
+  .btn-ghost:hover { background: #252525; color: #bbb; }
+  .btn-red { background: #2a1414; color: #e05; }
+  .btn-red:hover { background: #331a1a; }
+  .mask-pct { font-size: 11px; color: #555; margin-left: auto; }
+
+  .mid .panel-body { padding: 12px; gap: 10px; overflow-y: auto; display: flex; flex-direction: column; }
+  .slabel { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+
+  .ref-box { width: 100%; aspect-ratio: 1; border-radius: 8px; background: #1a1a1a; border: 1px solid #222; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
+  .ref-box img { width: 100%; height: 100%; object-fit: contain; }
+  .ref-box .ov { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; font-size: 11px; color: #ddd; }
+  .ref-box:hover .ov { display: flex; }
+  .ref-box input[type=file] { display: none; }
+
+  .tip { font-size: 11px; color: #444; line-height: 1.55; }
+  .divider { height: 1px; background: #1a1a1a; flex-shrink: 0; }
+
+  .steps { display: flex; flex-direction: column; gap: 5px; }
+  .step { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; color: #555; }
+  .step-num { width: 16px; height: 16px; border-radius: 50%; background: #1e1e1e; border: 1px solid #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #666; flex-shrink: 0; margin-top: 1px; }
+  .step.done .step-num { background: #1a2e1a; border-color: #2a4a2a; color: #5cb; }
+  .step.done { color: #3a5a3a; }
+
+  .run-btn { width: 100%; padding: 11px; border-radius: 7px; border: none; background: #5b7fff; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: auto; flex-shrink: 0; transition: background .15s; }
+  .run-btn:hover:not(:disabled) { background: #4a6eef; }
+  .run-btn:disabled { background: #151525; color: #334; cursor: not-allowed; }
+
+  .result-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; }
+  .result-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .ph { font-size: 12px; color: #333; text-align: center; line-height: 1.8; }
+
+  .status-bar { padding: 7px 12px; border-top: 1px solid #1a1a1a; font-size: 11px; color: #555; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: #2a2a2a; flex-shrink: 0; }
+  .dot.on { background: #5b7fff; animation: pulse 1s infinite; }
+  .dot.ok { background: #4caf50; }
+  .dot.err { background: #f44; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.25} }
+
+  .spinner { width: 28px; height: 28px; border: 3px solid #1e1e1e; border-top-color: #5b7fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .dl-btn { background: #1a2a1a; color: #5cb; border: none; border-radius: 5px; padding: 5px 10px; font-size: 11px; cursor: pointer; }
+  .dl-btn:hover { background: #1e341e; }
+</style>
+</head>
+<body>
+
+<!-- 密码锁 -->
+<div id="lock-screen">
+  <div class="lock-box">
+    <h2>产品替换工具</h2>
+    <p>请输入访问密码</p>
+    <input type="password" class="lock-input" id="lock-input" placeholder="密码" onkeydown="if(event.key==='Enter')unlock()">
+    <p class="lock-err" id="lock-err">密码错误，请重试</p>
+    <button class="lock-btn" onclick="unlock()">进入</button>
+  </div>
+</div>
+
+<header>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b7fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+  <h1>产品替换工具</h1>
+  <span class="model-tag">Paint-by-Example</span>
+  <span style="font-size:11px;color:#333;margin-left:4px">三图输入 · 无需文字描述 · 参考图直接驱动</span>
+</header>
+
+<div class="main">
+
+  <!-- 原图 + 遮罩 -->
+  <div class="panel">
+    <div class="panel-header">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      原始照片 — 涂抹要替换的产品
+      <span class="badge" id="orig-badge">未上传</span>
+      <div style="flex:1"></div>
+      <button class="btn btn-red" id="clear-orig-btn" style="display:none" onclick="clearOriginal()">重置</button>
+    </div>
+    <div class="panel-body">
+      <div class="upload-zone" id="upload-zone"
+        onclick="document.getElementById('orig-input').click()"
+        ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropOrig(event)">
+        <input type="file" id="orig-input" accept="image/*" onchange="loadOrig(event)">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>点击上传 或 拖入照片<br><span style="color:#2a2a2a;font-size:10px">JPG · PNG · WEBP</span></p>
+      </div>
+      <div class="canvas-wrap" id="canvas-wrap" style="display:none">
+        <canvas id="orig-canvas"></canvas>
+        <canvas id="mask-canvas"
+          onmousedown="startPaint(event)" onmousemove="movePaint(event)" onmouseup="stopPaint()"
+          onmouseleave="leavePaint()" ontouchstart="tStart(event)" ontouchmove="tMove(event)" ontouchend="stopPaint()">
+        </canvas>
+        <div id="brush-ring"></div>
+      </div>
+      <div class="toolbar" id="toolbar" style="display:none">
+        <label>笔刷</label>
+        <input type="range" id="brush-sz" min="6" max="150" value="45" oninput="document.getElementById('sz-lbl').textContent=this.value+'px'">
+        <span class="sz" id="sz-lbl">45px</span>
+        <button class="btn btn-ghost" onclick="clearMask()">清除遮罩</button>
+        <button class="btn btn-ghost" id="preview-btn" onclick="toggleMask()">预览遮罩</button>
+        <span class="mask-pct" id="mask-pct"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="panel mid">
+    <div class="panel-header">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      控制
+    </div>
+    <div class="panel-body">
+      <div class="steps">
+        <div class="step" id="s1"><div class="step-num">1</div>上传原始照片</div>
+        <div class="step" id="s2"><div class="step-num">2</div>用画笔涂抹要替换的产品</div>
+        <div class="step" id="s3"><div class="step-num">3</div>上传替换产品参考图</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div>
+        <div class="slabel">替换产品参考图</div>
+        <div class="ref-box" id="ref-box" onclick="document.getElementById('ref-input').click()">
+          <input type="file" id="ref-input" accept="image/*" onchange="loadRef(event)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <div class="ov">点击更换</div>
+        </div>
+        <p class="tip" style="margin-top:6px">建议用白底正面产品图<br>模型直接参考此图外观，无需文字描述</p>
+      </div>
+
+      <button class="run-btn" id="run-btn" onclick="runReplace()" disabled>生成替换图</button>
+    </div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="panel">
+    <div class="panel-header">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      生成结果
+      <span class="badge" id="res-badge">等待</span>
+    </div>
+    <div class="panel-body">
+      <div class="result-wrap" id="result-wrap">
+        <p class="ph">完成左侧三步<br>点击「生成替换图」</p>
+      </div>
+      <div class="status-bar">
+        <div class="dot" id="s-dot"></div>
+        <span id="s-txt">就绪</span>
+        <div style="flex:1"></div>
+        <button class="dl-btn" id="dl-btn" style="display:none" onclick="dlResult()">下载图片</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── 密码 ──────────────────────────────────────────────────────────────────────
+let sitePassword = '';
+function unlock() {
+  const pw = document.getElementById('lock-input').value.trim();
+  if (!pw) return;
+  sitePassword = pw;
+  // 先试一个假请求验证密码，直接隐藏锁屏（实际密码在服务端验证，生成时才校验）
+  document.getElementById('lock-screen').style.display = 'none';
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let origImg = null, refDataUrl = null, painting = false, maskVisible = false, resultUrl = null;
+const OC = document.getElementById('orig-canvas');
+const MC = document.getElementById('mask-canvas');
+const oc = OC.getContext('2d');
+const mc = MC.getContext('2d');
+
+// ── 原图 ──────────────────────────────────────────────────────────────────────
+function loadOrig(e) { const f = e.target.files[0]; if (f) readOrig(f); }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function dropOrig(e) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f?.type.startsWith('image/')) readOrig(f);
+}
+function readOrig(file) {
+  const r = new FileReader();
+  r.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      origImg = img;
+      document.getElementById('upload-zone').style.display = 'none';
+      document.getElementById('canvas-wrap').style.display = 'flex';
+      document.getElementById('toolbar').style.display = 'flex';
+      document.getElementById('clear-orig-btn').style.display = '';
+      document.getElementById('orig-badge').textContent = `${img.width}×${img.height}`;
+      requestAnimationFrame(() => { setupCanvas(img); updateSteps(); checkReady(); });
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+function clearOriginal() {
+  origImg = null; maskVisible = false;
+  document.getElementById('upload-zone').style.display = '';
+  document.getElementById('canvas-wrap').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('clear-orig-btn').style.display = 'none';
+  document.getElementById('orig-badge').textContent = '未上传';
+  document.getElementById('orig-input').value = '';
+  updateSteps(); checkReady();
+}
+function setupCanvas(img) {
+  const wrap = document.getElementById('canvas-wrap');
+  const ww = (wrap.clientWidth || 600) - 20;
+  const wh = (wrap.clientHeight || 480) - 20;
+  const s = Math.min(ww / img.width, wh / img.height, 1);
+  const w = Math.round(img.width * s), h = Math.round(img.height * s);
+  OC.width = w; OC.height = h; MC.width = w; MC.height = h;
+  oc.drawImage(img, 0, 0, w, h);
+  mc.clearRect(0, 0, w, h);
+}
+
+// ── 参考图 ────────────────────────────────────────────────────────────────────
+function loadRef(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    refDataUrl = ev.target.result;
+    const box = document.getElementById('ref-box');
+    let img = box.querySelector('img');
+    if (!img) {
+      box.querySelector('svg').style.display = 'none';
+      img = document.createElement('img');
+      box.insertBefore(img, box.querySelector('.ov'));
+    }
+    img.src = ev.target.result;
+    updateSteps(); checkReady();
+  };
+  r.readAsDataURL(f);
+}
+
+// ── 画笔 ──────────────────────────────────────────────────────────────────────
+function bsz() { return parseInt(document.getElementById('brush-sz').value); }
+MC.addEventListener('mousemove', e => {
+  const ring = document.getElementById('brush-ring');
+  const rect = MC.getBoundingClientRect(), b = bsz();
+  ring.style.display = 'block';
+  ring.style.width = b + 'px'; ring.style.height = b + 'px';
+  ring.style.left = (e.clientX - rect.left) + 'px';
+  ring.style.top  = (e.clientY - rect.top)  + 'px';
+});
+MC.addEventListener('mouseleave', () => { document.getElementById('brush-ring').style.display = 'none'; });
+function pos(e) { const r = MC.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function dot(p) {
+  mc.beginPath(); mc.arc(p.x, p.y, bsz() / 2, 0, Math.PI * 2);
+  mc.fillStyle = 'rgba(255,60,60,0.6)'; mc.fill();
+  refreshMaskPct();
+}
+function startPaint(e) { painting = true; mc.globalCompositeOperation = e.button === 2 ? 'destination-out' : 'source-over'; dot(pos(e)); }
+function movePaint(e) { if (painting) dot(pos(e)); }
+function stopPaint() { painting = false; }
+function leavePaint() { stopPaint(); document.getElementById('brush-ring').style.display = 'none'; }
+function tStart(e) { e.preventDefault(); startPaint(e.touches[0]); }
+function tMove(e)  { e.preventDefault(); movePaint(e.touches[0]); }
+MC.addEventListener('contextmenu', e => e.preventDefault());
+
+function clearMask() { mc.clearRect(0, 0, MC.width, MC.height); refreshMaskPct(); updateSteps(); checkReady(); }
+function toggleMask() {
+  maskVisible = !maskVisible;
+  document.getElementById('preview-btn').textContent = maskVisible ? '恢复原图' : '预览遮罩';
+  if (maskVisible) {
+    oc.fillStyle = '#000'; oc.fillRect(0, 0, OC.width, OC.height);
+    const tmp = document.createElement('canvas'); tmp.width = MC.width; tmp.height = MC.height;
+    const tc = tmp.getContext('2d'); tc.drawImage(MC, 0, 0);
+    const d = tc.getImageData(0, 0, tmp.width, tmp.height);
+    for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i] = v; d.data[i+1] = v; d.data[i+2] = v; d.data[i+3] = 255; }
+    tc.putImageData(d, 0, 0); oc.drawImage(tmp, 0, 0);
+  } else { oc.drawImage(origImg, 0, 0, OC.width, OC.height); }
+}
+function refreshMaskPct() {
+  if (!MC.width) return;
+  const d = mc.getImageData(0, 0, MC.width, MC.height).data;
+  let c = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 10) c++;
+  const p = Math.round(c / (MC.width * MC.height) * 100);
+  document.getElementById('mask-pct').textContent = p > 0 ? `已涂 ${p}%` : '';
+  updateSteps(); checkReady();
+}
+function hasMask() {
+  if (!MC.width) return false;
+  const d = mc.getImageData(0, 0, MC.width, MC.height).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i] > 10) return true;
+  return false;
+}
+
+// ── 步骤指示 ──────────────────────────────────────────────────────────────────
+function updateSteps() {
+  const setStep = (id, done) => { document.getElementById(id).className = done ? 'step done' : 'step'; };
+  setStep('s1', !!origImg);
+  setStep('s2', hasMask());
+  setStep('s3', !!refDataUrl);
+}
+function checkReady() {
+  document.getElementById('run-btn').disabled = !(origImg && hasMask() && refDataUrl);
+}
+
+// ── 导出图像 ──────────────────────────────────────────────────────────────────
+function getExportSize() {
+  const W = origImg.width, H = origImg.height;
+  const s = Math.min(512 / W, 512 / H, 1);
+  return { w: Math.round(W * s / 8) * 8, h: Math.round(H * s / 8) * 8 };
+}
+function getOrigDataUrl() {
+  const { w, h } = getExportSize();
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').drawImage(origImg, 0, 0, w, h);
+  return c.toDataURL('image/png');
+}
+function getMaskDataUrl() {
+  const { w, h } = getExportSize();
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
+  const tc = tmp.getContext('2d'); tc.drawImage(MC, 0, 0, w, h);
+  const d = tc.getImageData(0, 0, w, h);
+  for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i] = v; d.data[i+1] = v; d.data[i+2] = v; d.data[i+3] = 255; }
+  ctx.putImageData(d, 0, 0);
+  return c.toDataURL('image/png');
+}
+
+// ── 生成 ──────────────────────────────────────────────────────────────────────
+async function runReplace() {
+  setStatus('on', '准备图像数据…');
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('result-wrap').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('res-badge').textContent = '生成中';
+  document.getElementById('dl-btn').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/replace', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password:        sitePassword,
+        image:           getOrigDataUrl(),
+        mask:            getMaskDataUrl(),
+        reference_image: refDataUrl,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    resultUrl = data.output;
+    document.getElementById('result-wrap').innerHTML = `<img src="${resultUrl}" alt="result">`;
+    document.getElementById('res-badge').textContent = '完成';
+    document.getElementById('dl-btn').style.display = '';
+    setStatus('ok', '生成成功 ✓');
+
+  } catch (e) {
+    document.getElementById('result-wrap').innerHTML = `<p class="ph" style="color:#c44">${e.message}</p>`;
+    document.getElementById('res-badge').textContent = '失败';
+    setStatus('err', '出错：' + e.message);
+  }
+
+  document.getElementById('run-btn').disabled = false;
+  checkReady();
+}
+
+function setStatus(type, txt) {
+  const d = document.getElementById('s-dot');
+  d.className = 'dot' + (type === 'on' ? ' on' : type === 'ok' ? ' ok' : type === 'err' ? ' err' : '');
+  document.getElementById('s-txt').textContent = txt;
+}
+function dlResult() {
+  if (!resultUrl) return;
+  const a = document.createElement('a'); a.href = resultUrl; a.download = 'product-replaced.png'; a.target = '_blank'; a.click();
+}
+</script>
+</body>
+</html>
