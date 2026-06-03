@@ -397,7 +397,9 @@ async function runReplace() {
   document.getElementById('dl-btn').style.display = 'none';
 
   try {
-    const res = await fetch('/api/replace', {
+    // 第一步：提交任务
+    setStatus('on', '提交任务…');
+    const submitRes = await fetch('/api/replace', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -408,14 +410,36 @@ async function runReplace() {
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    const submitData = await submitRes.json();
+    if (!submitRes.ok) throw new Error(submitData.error || `HTTP ${submitRes.status}`);
 
-    resultUrl = data.output;
-    document.getElementById('result-wrap').innerHTML = `<img src="${resultUrl}" alt="result">`;
-    document.getElementById('res-badge').textContent = '完成';
-    document.getElementById('dl-btn').style.display = '';
-    setStatus('ok', '生成成功 ✓');
+    const predId = submitData.id;
+    setStatus('on', '生成中，请稍候…');
+
+    // 第二步：前端轮询结果
+    let elapsed = 0;
+    while (elapsed < 300) {
+      await sleep(3000);
+      elapsed += 3;
+      setStatus('on', `生成中… ${elapsed}s`);
+
+      const pollRes = await fetch(`/api/status?id=${predId}`);
+      const pollData = await pollRes.json();
+
+      if (pollData.status === 'succeeded') {
+        resultUrl = pollData.output;
+        document.getElementById('result-wrap').innerHTML = `<img src="${resultUrl}" alt="result">`;
+        document.getElementById('res-badge').textContent = '完成';
+        document.getElementById('dl-btn').style.display = '';
+        setStatus('ok', '生成成功 ✓');
+        break;
+      } else if (pollData.status === 'failed') {
+        throw new Error(pollData.error || '模型生成失败');
+      }
+      // starting / processing 继续等
+    }
+
+    if (elapsed >= 300) throw new Error('超时，请重试');
 
   } catch (e) {
     document.getElementById('result-wrap').innerHTML = `<p class="ph" style="color:#c44">${e.message}</p>`;
