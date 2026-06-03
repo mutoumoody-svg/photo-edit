@@ -59,6 +59,12 @@
   .tip { font-size: 11px; color: #444; line-height: 1.55; }
   .divider { height: 1px; background: #1a1a1a; flex-shrink: 0; }
 
+  .ref-box { width: 100%; aspect-ratio: 1; border-radius: 8px; background: #1a1a1a; border: 1px solid #222; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
+  .ref-box img { width: 100%; height: 100%; object-fit: contain; }
+  .ref-box .ov { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; font-size: 11px; color: #ddd; }
+  .ref-box:hover .ov { display: flex; }
+  .ref-box input[type=file] { display: none; }
+
   .steps { display: flex; flex-direction: column; gap: 5px; }
   .step { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; color: #555; }
   .step-num { width: 16px; height: 16px; border-radius: 50%; background: #1e1e1e; border: 1px solid #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #666; flex-shrink: 0; margin-top: 1px; }
@@ -155,15 +161,19 @@
       <div class="steps">
         <div class="step" id="s1"><div class="step-num">1</div>上传原始照片</div>
         <div class="step" id="s2"><div class="step-num">2</div>用画笔涂抹要替换的产品</div>
-        <div class="step" id="s3"><div class="step-num">3</div>填写替换产品描述（可选）</div>
+        <div class="step" id="s3"><div class="step-num">3</div>上传替换产品白底图</div>
       </div>
 
       <div class="divider"></div>
 
       <div>
-        <div class="slabel">替换产品描述</div>
-        <textarea id="product-desc" placeholder="例：一瓶白色极简风格护肤乳液，磨砂质感瓶身&#10;描述越具体效果越好&#10;留空则用默认 prompt"></textarea>
-        <p class="tip" style="margin-top:6px">描述要替换进去的产品外观<br>包括颜色、材质、形状、风格</p>
+        <div class="slabel">替换产品图（白底）</div>
+        <div class="ref-box" id="ref-box" onclick="document.getElementById('ref-input').click()">
+          <input type="file" id="ref-input" accept="image/*" onchange="loadRef(event)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <div class="ov">点击更换</div>
+        </div>
+        <p class="tip" style="margin-top:6px">上传白底正面产品图<br>AI 自动识别外观并替换，无需手写描述</p>
       </div>
 
       <button class="run-btn" id="run-btn" onclick="runReplace()" disabled>生成替换图</button>
@@ -201,7 +211,7 @@ function unlock() {
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let origImg = null, painting = false, maskVisible = false, resultUrl = null;
+let origImg = null, refDataUrl = null, painting = false, maskVisible = false, resultUrl = null;
 const OC = document.getElementById('orig-canvas');
 const MC = document.getElementById('mask-canvas');
 const oc = OC.getContext('2d');
@@ -252,6 +262,25 @@ function setupCanvas(img) {
   OC.width = w; OC.height = h; MC.width = w; MC.height = h;
   oc.drawImage(img, 0, 0, w, h);
   mc.clearRect(0, 0, w, h);
+}
+
+// ── 参考图 ────────────────────────────────────────────────────────────────────
+function loadRef(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    refDataUrl = ev.target.result;
+    const box = document.getElementById('ref-box');
+    let img = box.querySelector('img');
+    if (!img) {
+      box.querySelector('svg').style.display = 'none';
+      img = document.createElement('img');
+      box.insertBefore(img, box.querySelector('.ov'));
+    }
+    img.src = ev.target.result;
+    updateSteps(); checkReady();
+  };
+  r.readAsDataURL(f);
 }
 
 // ── 画笔 ──────────────────────────────────────────────────────────────────────
@@ -316,10 +345,10 @@ function updateSteps() {
   const set = (id, done) => { document.getElementById(id).className = done ? 'step done' : 'step'; };
   set('s1', !!origImg);
   set('s2', hasMask());
-  set('s3', true); // 描述可选，始终算完成
+  set('s3', !!refDataUrl);
 }
 function checkReady() {
-  document.getElementById('run-btn').disabled = !(origImg && hasMask());
+  document.getElementById('run-btn').disabled = !(origImg && hasMask() && refDataUrl);
 }
 
 // ── 导出图像 ──────────────────────────────────────────────────────────────────
@@ -362,10 +391,10 @@ async function runReplace() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        password: sitePassword,
-        image:    getOrigDataUrl(),
-        mask:     getMaskDataUrl(),
-        prompt:   document.getElementById('product-desc').value.trim(),
+        password:        sitePassword,
+        image:           getOrigDataUrl(),
+        mask:            getMaskDataUrl(),
+        reference_image: refDataUrl,
       }),
     });
     const submitData = await submitRes.json();
