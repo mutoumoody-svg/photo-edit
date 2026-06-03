@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { password, image, mask, reference_image } = req.body;
+  const { password, image, mask, reference_image, prompt: userPrompt } = req.body;
 
   const SITE_PASSWORD = process.env.SITE_PASSWORD;
   if (SITE_PASSWORD && password !== SITE_PASSWORD) {
@@ -23,37 +23,12 @@ export default async function handler(req, res) {
     'Content-Type': 'application/json',
   };
 
-  try {
-    // Step 1: 视觉模型分析参考图，生成 prompt
-    let prompt = 'a product, clean, photorealistic, high quality';
-    if (reference_image) {
-      try {
-        const vRes = await fetch('https://api.replicate.com/v1/predictions', {
-          method: 'POST', headers,
-          body: JSON.stringify({
-            version: '80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb',
-            input: {
-              image: reference_image,
-              question: 'Describe this product in one sentence: shape, color, material, style.',
-            },
-          }),
-        });
-        if (vRes.ok) {
-          let vp = await vRes.json();
-          for (let i = 0; i < 15 && vp.status !== 'succeeded' && vp.status !== 'failed'; i++) {
-            await sleep(1500);
-            const p = await fetch(`https://api.replicate.com/v1/predictions/${vp.id}`, { headers });
-            vp = await p.json();
-          }
-          if (vp.status === 'succeeded' && vp.output) {
-            const desc = Array.isArray(vp.output) ? vp.output.join('') : vp.output;
-            prompt = `${desc}, product photography, photorealistic, high quality`;
-          }
-        }
-      } catch (e) { /* 视觉失败不影响主流程 */ }
-    }
+  // 用用户填写的描述，或默认 prompt
+  const prompt = userPrompt
+    ? `${userPrompt}, product photography, photorealistic, high quality`
+    : 'a product, clean, product photography, photorealistic, high quality';
 
-    // Step 2: SDXL Inpainting
+  try {
     const ir = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST', headers,
       body: JSON.stringify({
@@ -66,15 +41,15 @@ export default async function handler(req, res) {
         },
       }),
     });
+
     if (!ir.ok) {
       const err = await ir.json().catch(() => ({}));
       return res.status(ir.status).json({ error: err.detail || 'Replicate 提交失败' });
     }
     const pred = await ir.json();
     return res.status(200).json({ id: pred.id, status: pred.status });
+
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 }
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

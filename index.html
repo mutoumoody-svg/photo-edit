@@ -173,7 +173,14 @@
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           <div class="ov">点击更换</div>
         </div>
-        <p class="tip" style="margin-top:6px">上传白底正面产品图<br>AI 自动识别外观并替换，无需手写描述</p>
+        <p class="tip" style="margin-top:6px">上传白底正面产品图（参考用）</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div>
+        <div class="slabel">产品描述（选填，越具体越好）</div>
+        <textarea id="product-desc" placeholder="例：白色圆柱形护肤乳液，极简磨砂瓶身&#10;留空则用默认描述"></textarea>
       </div>
 
       <button class="run-btn" id="run-btn" onclick="runReplace()" disabled>生成替换图</button>
@@ -420,6 +427,7 @@ async function runReplace() {
         image:           getOrigDataUrl(),
         mask:            getMaskDataUrl(),
         reference_image: await getRefDataUrl(),
+        prompt:          document.getElementById('product-desc').value.trim(),
       }),
     });
     const submitData = await submitRes.json();
