@@ -351,6 +351,7 @@ function checkReady() {
 // ── 导出图像 ──────────────────────────────────────────────────────────────────
 function getExportSize() {
   const W = origImg.width, H = origImg.height;
+  // 限制最大 512px，Paint-by-Example 推荐尺寸
   const s = Math.min(512 / W, 512 / H, 1);
   return { w: Math.round(W * s / 8) * 8, h: Math.round(H * s / 8) * 8 };
 }
@@ -358,7 +359,8 @@ function getOrigDataUrl() {
   const { w, h } = getExportSize();
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   c.getContext('2d').drawImage(origImg, 0, 0, w, h);
-  return c.toDataURL('image/png');
+  // 用 JPEG 压缩减小体积
+  return c.toDataURL('image/jpeg', 0.92);
 }
 function getMaskDataUrl() {
   const { w, h } = getExportSize();
@@ -370,7 +372,20 @@ function getMaskDataUrl() {
   const d = tc.getImageData(0, 0, w, h);
   for (let i = 0; i < d.data.length; i += 4) { const v = d.data[i+3] > 10 ? 255 : 0; d.data[i] = v; d.data[i+1] = v; d.data[i+2] = v; d.data[i+3] = 255; }
   ctx.putImageData(d, 0, 0);
+  // 遮罩必须用 PNG 保证黑白精确
   return c.toDataURL('image/png');
+}
+function getRefDataUrl() {
+  // 参考图也压缩到 512px 以内
+  const img = new Image(); img.src = refDataUrl;
+  const maxS = 512;
+  const rw = img.naturalWidth || 512, rh = img.naturalHeight || 512;
+  const s = Math.min(maxS / rw, maxS / rh, 1);
+  const c = document.createElement('canvas');
+  c.width = Math.round(rw * s / 8) * 8;
+  c.height = Math.round(rh * s / 8) * 8;
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.92);
 }
 
 // ── 生成 ──────────────────────────────────────────────────────────────────────
@@ -389,7 +404,7 @@ async function runReplace() {
         password:        sitePassword,
         image:           getOrigDataUrl(),
         mask:            getMaskDataUrl(),
-        reference_image: refDataUrl,
+        reference_image: getRefDataUrl(),
       }),
     });
 

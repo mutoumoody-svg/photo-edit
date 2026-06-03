@@ -1,6 +1,14 @@
 // Vercel Serverless Function
 // Key 存在 Vercel 环境变量 REPLICATE_KEY 里，前端永远看不到
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   // 跨域
   res.setHeader('Access-Control-Allow-Origin', '*');
