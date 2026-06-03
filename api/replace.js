@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   try {
     const { prompt } = req.body;
     const createRes = await fetch(
-      'https://api.replicate.com/v1/models/stability-ai/stable-diffusion-inpainting/predictions',
+      'https://api.replicate.com/v1/predictions',
       {
         method: 'POST',
         headers: {
@@ -35,6 +35,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          version: 'a5b13068cc81a89a4fbeefeccc774869fcb34df4dbc92c1555e0f2771d49dde7',
           input: {
             image,
             mask,
