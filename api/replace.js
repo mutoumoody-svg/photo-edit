@@ -1,5 +1,5 @@
 export const config = {
-  api: { bodyParser: { sizeLimit: '6mb' } },
+  api: { bodyParser: { sizeLimit: '10mb' } },
 };
 
 export default async function handler(req, res) {
@@ -15,39 +15,47 @@ export default async function handler(req, res) {
   if (SITE_PASSWORD && password !== SITE_PASSWORD) {
     return res.status(401).json({ error: '密码错误' });
   }
-  const REPLICATE_KEY = process.env.REPLICATE_KEY;
-  if (!REPLICATE_KEY) return res.status(500).json({ error: '服务端未配置 API Key' });
 
-  const headers = {
-    'Authorization': `Bearer ${REPLICATE_KEY}`,
-    'Content-Type': 'application/json',
-  };
-
-  // 用用户填写的描述，或默认 prompt
-  const prompt = userPrompt
-    ? `${userPrompt}, product photography, photorealistic, high quality`
-    : 'a product, clean, product photography, photorealistic, high quality';
+  const OPENAI_KEY = process.env.OPENAI_KEY;
+  if (!OPENAI_KEY) return res.status(500).json({ error: '服务端未配置 OpenAI Key' });
 
   try {
-    const ir = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST', headers,
-      body: JSON.stringify({
-        version: 'a5b13068cc81a89a4fbeefeccc774869fcb34df4dbc92c1555e0f2771d49dde7',
-        input: {
-          image, mask, prompt,
-          negative_prompt: 'blurry, deformed, ugly, bad quality, watermark, text',
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
-        },
-      }),
+    // base64 → Buffer → Blob
+    const imageBuffer = Buffer.from(image.split(',')[1], 'base64');
+    const maskBuffer  = Buffer.from(mask.split(',')[1],  'base64');
+
+    const prompt = userPrompt
+      ? `Replace the selected area with: ${userPrompt}. Keep the same lighting, perspective and scale as the surrounding scene. Photorealistic.`
+      : 'Replace the selected area with the product from the reference image. Keep the same lighting, perspective and scale as the surrounding scene. Photorealistic.';
+
+    const formData = new FormData();
+    formData.append('model', 'gpt-image-1');
+    formData.append('image[]', new Blob([imageBuffer], { type: 'image/jpeg' }), 'image.jpg');
+
+    if (reference_image) {
+      const refBuffer = Buffer.from(reference_image.split(',')[1], 'base64');
+      formData.append('image[]', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
+    }
+
+    formData.append('mask',   new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
+    formData.append('prompt', prompt);
+    formData.append('n',      '1');
+    formData.append('size',   '1024x1024');
+
+    const openaiRes = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: formData,
     });
 
-    if (!ir.ok) {
-      const err = await ir.json().catch(() => ({}));
-      return res.status(ir.status).json({ error: err.detail || 'Replicate 提交失败' });
+    if (!openaiRes.ok) {
+      const err = await openaiRes.json().catch(() => ({}));
+      return res.status(openaiRes.status).json({ error: err.error?.message || 'OpenAI 请求失败' });
     }
-    const pred = await ir.json();
-    return res.status(200).json({ id: pred.id, status: pred.status });
+
+    const result = await openaiRes.json();
+    const b64 = result.data[0].b64_json;
+    return res.status(200).json({ output: `data:image/png;base64,${b64}` });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
