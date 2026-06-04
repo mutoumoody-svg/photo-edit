@@ -19,9 +19,9 @@
 
   header { padding: 16px 28px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; gap: 14px; }
   header h1 { font-size: 16px; font-weight: 600; }
-  .model-tag { background: #1a2a3a; color: #5eb8ff; border: 1px solid #2a3a4a; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 500; }
+  .model-tag { background: #1a2a1a; color: #5cb; border: 1px solid #2a4a2a; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 500; }
 
-  .main { display: grid; grid-template-columns: 1fr 260px 1fr; gap: 12px; padding: 14px 16px; height: calc(100vh - 53px); }
+  .main { display: grid; grid-template-columns: 1fr 270px 1fr; gap: 12px; padding: 14px 16px; height: calc(100vh - 53px); }
 
   .panel { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
   .panel-header { padding: 11px 14px; border-bottom: 1px solid #1e1e1e; font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -66,13 +66,27 @@
   .step.done .step-num { background: #1a2e1a; border-color: #2a4a2a; color: #5cb; }
   .step.done { color: #3a5a3a; }
 
-  textarea { width: 100%; background: #1a1a1a; border: 1px solid #222; border-radius: 6px; padding: 8px; font-size: 12px; color: #ccc; resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.5; }
+  textarea { width: 100%; background: #1a1a1a; border: 1px solid #222; border-radius: 6px; padding: 8px; font-size: 12px; color: #ccc; resize: vertical; min-height: 60px; font-family: inherit; line-height: 1.5; }
   textarea:focus { outline: none; border-color: #5b7fff44; }
   textarea::placeholder { color: #333; }
 
-  .run-btn { width: 100%; padding: 11px; border-radius: 7px; border: none; background: #5b7fff; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: auto; flex-shrink: 0; transition: background .15s; }
-  .run-btn:hover:not(:disabled) { background: #4a6eef; }
-  .run-btn:disabled { background: #151525; color: #334; cursor: not-allowed; }
+  .mode-row { display: flex; gap: 6px; flex-shrink: 0; }
+  .mode-btn { flex: 1; padding: 8px 6px; border-radius: 6px; border: 1px solid #2a2a2a; font-size: 11px; font-weight: 500; cursor: pointer; background: #1a1a1a; color: #666; transition: all .15s; text-align: center; line-height: 1.6; }
+  .mode-btn.active { background: #1a2e1a; border-color: #3a5a3a; color: #5cb; }
+  .mode-btn:hover:not(.active) { background: #1e1e1e; color: #999; }
+  .ai-options { display: flex; flex-direction: column; gap: 8px; }
+
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+  .slider-row label { font-size: 11px; color: #555; white-space: nowrap; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row span { font-size: 11px; color: #555; min-width: 28px; text-align: right; }
+
+  .run-btn { width: 100%; padding: 11px; border-radius: 7px; border: none; background: #5cb; color: #0c1a0c; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: auto; flex-shrink: 0; transition: background .15s; }
+  .run-btn:hover:not(:disabled) { background: #4db; }
+  .run-btn:disabled { background: #1a2a1a; color: #2a4a2a; cursor: not-allowed; }
+  .run-btn.ai-mode { background: #5b7fff; color: #fff; }
+  .run-btn.ai-mode:hover:not(:disabled) { background: #4a6eef; }
+  .run-btn.ai-mode:disabled { background: #151525; color: #334; }
 
   .result-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #0c0c0c; overflow: hidden; min-height: 0; }
   .result-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -102,9 +116,9 @@
 </div>
 
 <header>
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b7fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5cb" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
   <h1>产品替换工具</h1>
-  <span class="model-tag">GPT-4o Image Edit</span>
+  <span class="model-tag">直接合成 · 无损替换</span>
   <span style="font-size:11px;color:#333;margin-left:4px">上传参考图 · 涂抹区域 · 一键替换</span>
 </header>
 
@@ -165,12 +179,44 @@
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           <div class="ov">点击更换</div>
         </div>
-        <p class="tip" style="margin-top:6px">上传白底正面产品图<br>GPT-4o 直接参考此图外观进行替换</p>
       </div>
 
       <div class="divider"></div>
 
       <div>
+        <div class="slabel">替换模式</div>
+        <div class="mode-row">
+          <div class="mode-btn active" id="mode-composite" onclick="setMode('composite')">
+            ⚡ 直接合成<br><span style="font-size:9px;opacity:.6">快速·无费用</span>
+          </div>
+          <div class="mode-btn" id="mode-ai" onclick="setMode('ai')">
+            🤖 AI 生成<br><span style="font-size:9px;opacity:.6">GPT-4o</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 直接合成选项 -->
+      <div id="composite-options">
+        <div class="slabel" style="margin-bottom:6px">白底去除灵敏度</div>
+        <div class="slider-row">
+          <label>阈值</label>
+          <input type="range" id="white-thresh" min="180" max="254" value="230"
+            oninput="document.getElementById('thresh-lbl').textContent=this.value">
+          <span id="thresh-lbl">230</span>
+        </div>
+        <p class="tip" style="margin-top:3px;font-size:10px">数值越小去除越多；纯白底用240+，灰底用200左右</p>
+
+        <div class="slabel" style="margin-bottom:6px;margin-top:8px">边缘羽化</div>
+        <div class="slider-row">
+          <label>模糊</label>
+          <input type="range" id="feather-px" min="0" max="20" value="4"
+            oninput="document.getElementById('feather-lbl').textContent=this.value+'px'">
+          <span id="feather-lbl">4px</span>
+        </div>
+      </div>
+
+      <!-- AI 选项 -->
+      <div id="ai-options" style="display:none" class="ai-options">
         <div class="slabel">补充描述（选填）</div>
         <textarea id="product-desc" placeholder="例：白色圆柱形蜂蜜瓶，极简标签&#10;有参考图时留空即可"></textarea>
       </div>
@@ -210,10 +256,23 @@ function unlock() {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let origImg = null, refDataUrl = null, painting = false, maskVisible = false, resultUrl = null;
+let currentMode = 'composite';
 const OC = document.getElementById('orig-canvas');
 const MC = document.getElementById('mask-canvas');
 const oc = OC.getContext('2d');
 const mc = MC.getContext('2d');
+
+// ── 模式切换 ──────────────────────────────────────────────────────────────────
+function setMode(m) {
+  currentMode = m;
+  document.getElementById('mode-composite').className = 'mode-btn' + (m === 'composite' ? ' active' : '');
+  document.getElementById('mode-ai').className        = 'mode-btn' + (m === 'ai'        ? ' active' : '');
+  document.getElementById('composite-options').style.display = m === 'composite' ? '' : 'none';
+  document.getElementById('ai-options').style.display        = m === 'ai'        ? '' : 'none';
+  const btn = document.getElementById('run-btn');
+  btn.className = m === 'ai' ? 'run-btn ai-mode' : 'run-btn';
+  checkReady();
+}
 
 // ── 原图 ──────────────────────────────────────────────────────────────────────
 function loadOrig(e) { const f = e.target.files[0]; if (f) readOrig(f); }
@@ -234,7 +293,7 @@ function readOrig(file) {
       document.getElementById('canvas-wrap').style.display = 'flex';
       document.getElementById('toolbar').style.display = 'flex';
       document.getElementById('clear-btn').style.display = '';
-      document.getElementById('orig-badge').textContent = `${img.width}×${img.height}`;
+      document.getElementById('orig-badge').textContent = `${img.width}x${img.height}`;
       requestAnimationFrame(() => { setupCanvas(img); updateSteps(); checkReady(); });
     };
     img.src = ev.target.result;
@@ -306,7 +365,7 @@ function startPaint(e) {
 }
 function movePaint(e) { if (painting) dot(pos(e)); }
 function stopPaint() { painting = false; }
-function leavePaint() { stopPaint(); document.getElementById('brush-ring').style.display='none'; }
+function leavePaint() { stopPaint(); document.getElementById('brush-ring').style.display = 'none'; }
 function tStart(e) { e.preventDefault(); startPaint(e.touches[0]); }
 function tMove(e)  { e.preventDefault(); movePaint(e.touches[0]); }
 MC.addEventListener('contextmenu', e => e.preventDefault());
@@ -348,47 +407,36 @@ function checkReady() {
   document.getElementById('run-btn').disabled = !(origImg && hasMask() && refDataUrl);
 }
 
-// ── 导出图像 ──────────────────────────────────────────────────────────────────
-const MAX_PX = 1024; // GPT-4o 支持高分辨率，不需要压缩太小
-
+// ── 图像尺寸工具 ──────────────────────────────────────────────────────────────
+const MAX_PX = 1024;
 function calcSize(w, h, maxPx) {
   const s = Math.min(maxPx/w, maxPx/h, 1);
   return { w: Math.round(w*s/8)*8, h: Math.round(h*s/8)*8 };
 }
-
 function getOrigDataUrl() {
   const { w, h } = calcSize(origImg.width, origImg.height, MAX_PX);
   const c = document.createElement('canvas'); c.width=w; c.height=h;
   c.getContext('2d').drawImage(origImg, 0, 0, w, h);
   return c.toDataURL('image/jpeg', 0.92);
 }
-
-// OpenAI 遮罩格式：涂抹区域 = 透明(alpha=0)，保留区域 = 白色不透明
 function getMaskDataUrl() {
   const { w, h } = calcSize(origImg.width, origImg.height, MAX_PX);
   const c = document.createElement('canvas'); c.width=w; c.height=h;
   const ctx = c.getContext('2d');
-
-  // 先铺白色不透明底（保留区域）
   ctx.fillStyle = 'rgba(255,255,255,255)';
   ctx.fillRect(0, 0, w, h);
-
-  // 读取画笔涂抹区域
   const tmp = document.createElement('canvas'); tmp.width=w; tmp.height=h;
   tmp.getContext('2d').drawImage(MC, 0, 0, w, h);
   const painted = tmp.getContext('2d').getImageData(0, 0, w, h);
   const out = ctx.getImageData(0, 0, w, h);
-
   for (let i=0; i<painted.data.length; i+=4) {
     if (painted.data[i+3] > 10) {
-      // 涂抹过的区域 → 透明（OpenAI 在此处生成内容）
       out.data[i]=0; out.data[i+1]=0; out.data[i+2]=0; out.data[i+3]=0;
     }
   }
   ctx.putImageData(out, 0, 0);
-  return c.toDataURL('image/png'); // 遮罩必须 PNG 保留透明通道
+  return c.toDataURL('image/png');
 }
-
 function getRefDataUrl() {
   return new Promise(resolve => {
     const img = new Image();
@@ -402,7 +450,195 @@ function getRefDataUrl() {
   });
 }
 
-// ── 生成 ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// 直接合成模式
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 从白底图中提取产品（去除白色背景，边缘渐变）
+ * threshold: 亮度低于此值的像素视为产品前景
+ */
+function extractProduct(refImg, threshold) {
+  const MAX = 1200;
+  const s = Math.min(MAX / refImg.width, MAX / refImg.height, 1);
+  const w = Math.round(refImg.width * s);
+  const h = Math.round(refImg.height * s);
+  const c = document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(refImg, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h);
+
+  const FADE = 18; // 过渡带宽（像素亮度范围）
+  for (let i = 0; i < d.data.length; i += 4) {
+    const r = d.data[i], g = d.data[i+1], b = d.data[i+2];
+    const minC = Math.min(r, g, b);
+    const sat  = Math.max(r, g, b) - minC;
+    // 低饱和（接近灰/白）且亮度高 → 背景像素
+    if (sat < 20 && minC > threshold - FADE) {
+      if (minC >= threshold) {
+        d.data[i+3] = 0; // 完全透明
+      } else {
+        // 渐变过渡
+        const alpha = Math.round((threshold - minC) / FADE * 255);
+        d.data[i+3] = Math.min(d.data[i+3], alpha);
+      }
+    }
+  }
+  ctx.putImageData(d, 0, 0);
+  return c;
+}
+
+/**
+ * 获取遮罩的边界框（目标输出尺寸下）
+ */
+function getMaskBBox(targetW, targetH) {
+  const tmp = document.createElement('canvas'); tmp.width=targetW; tmp.height=targetH;
+  tmp.getContext('2d').drawImage(MC, 0, 0, targetW, targetH);
+  const d = tmp.getContext('2d').getImageData(0, 0, targetW, targetH).data;
+  let x0=targetW, y0=targetH, x1=0, y1=0, found=false;
+  for (let y=0; y<targetH; y++) {
+    for (let x=0; x<targetW; x++) {
+      if (d[(y*targetW+x)*4+3] > 10) {
+        if (x < x0) x0=x; if (y < y0) y0=y;
+        if (x > x1) x1=x; if (y > y1) y1=y;
+        found = true;
+      }
+    }
+  }
+  return found ? { x:x0, y:y0, w:x1-x0+1, h:y1-y0+1 } : null;
+}
+
+/**
+ * 核心：直接合成
+ * 1. 去白底提取产品
+ * 2. 缩放产品以适合遮罩区域
+ * 3. 使用遮罩形状裁切，叠加到原图
+ */
+async function runComposite() {
+  setStatus('on', '提取产品（去除白底）…');
+  const threshold = parseInt(document.getElementById('white-thresh').value);
+  const feather   = parseInt(document.getElementById('feather-px').value);
+
+  // 加载参考图
+  const refImg = await new Promise(resolve => {
+    const img = new Image(); img.onload = () => resolve(img); img.src = refDataUrl;
+  });
+
+  // 输出尺寸：使用原图实际分辨率（最大 2048）
+  const outW = Math.min(origImg.width,  2048);
+  const outH = Math.min(origImg.height, 2048);
+
+  // 提取产品（去白底）
+  const prodC = extractProduct(refImg, threshold);
+
+  // 获取遮罩边界框
+  setStatus('on', '计算放置位置…');
+  const bbox = getMaskBBox(outW, outH);
+  if (!bbox) throw new Error('未检测到有效遮罩区域');
+
+  // 计算产品缩放比例，填充遮罩区域（保持原比例，留 3% 边距）
+  const pad   = 0.03;
+  const fitW  = bbox.w * (1 - pad * 2);
+  const fitH  = bbox.h * (1 - pad * 2);
+  const scale = Math.min(fitW / prodC.width, fitH / prodC.height);
+  const pw    = Math.round(prodC.width  * scale);
+  const ph    = Math.round(prodC.height * scale);
+  // 居中对齐到遮罩中心
+  const px    = bbox.x + Math.round((bbox.w - pw) / 2);
+  const py    = bbox.y + Math.round((bbox.h - ph) / 2);
+
+  setStatus('on', '合成图像…');
+
+  // 输出画布：先画原图
+  const outC = document.createElement('canvas'); outC.width=outW; outC.height=outH;
+  const ctx  = outC.getContext('2d');
+  ctx.drawImage(origImg, 0, 0, outW, outH);
+
+  // 遮罩层（含羽化模糊）
+  const maskC = document.createElement('canvas'); maskC.width=outW; maskC.height=outH;
+  const mctx  = maskC.getContext('2d');
+  mctx.drawImage(MC, 0, 0, outW, outH);
+  if (feather > 0) {
+    // CSS filter blur 需要先把图像复制出来再画回去
+    mctx.filter = `blur(${feather}px)`;
+    const tmp = document.createElement('canvas'); tmp.width=outW; tmp.height=outH;
+    tmp.getContext('2d').drawImage(maskC, 0, 0);
+    mctx.clearRect(0, 0, outW, outH);
+    mctx.drawImage(tmp, 0, 0);
+    mctx.filter = 'none';
+  }
+
+  // 产品层：以遮罩形状裁切，再叠加到原图
+  const prodLayer = document.createElement('canvas'); prodLayer.width=outW; prodLayer.height=outH;
+  const pctx = prodLayer.getContext('2d');
+  pctx.drawImage(maskC, 0, 0);                      // 遮罩作为 alpha 形状
+  pctx.globalCompositeOperation = 'source-in';       // 裁切到遮罩区域内
+  pctx.drawImage(prodC, px, py, pw, ph);             // 画产品
+  pctx.globalCompositeOperation = 'source-over';
+
+  // 将产品层叠加到原图
+  ctx.drawImage(prodLayer, 0, 0);
+
+  return outC.toDataURL('image/jpeg', 0.95);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI 模式（GPT-4o，备用）
+// ═══════════════════════════════════════════════════════════════════════════════
+async function runAI() {
+  setStatus('on', '发送到 GPT-4o，请稍候（约30-60秒）…');
+  const res = await fetch('/api/replace', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      password:        sitePassword,
+      image:           getOrigDataUrl(),
+      mask:            getMaskDataUrl(),
+      reference_image: await getRefDataUrl(),
+      prompt:          document.getElementById('product-desc').value.trim(),
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  setStatus('on', '合成图像…');
+  return await compositeWithOriginal(data.output);
+}
+
+// AI 结果与原图合成（遮罩外强制用原图像素）
+function compositeWithOriginal(aiDataUrl) {
+  return new Promise(resolve => {
+    const aiImg = new Image();
+    aiImg.onload = () => {
+      const w = aiImg.width, h = aiImg.height;
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(origImg, 0, 0, w, h);
+      const origData = ctx.getImageData(0, 0, w, h);
+      ctx.drawImage(aiImg, 0, 0, w, h);
+      const aiData = ctx.getImageData(0, 0, w, h);
+      const maskC = document.createElement('canvas'); maskC.width=w; maskC.height=h;
+      maskC.getContext('2d').drawImage(MC, 0, 0, w, h);
+      const maskData = maskC.getContext('2d').getImageData(0, 0, w, h);
+      const out = ctx.createImageData(w, h);
+      for (let i=0; i<maskData.data.length; i+=4) {
+        if (maskData.data[i+3] > 10) {
+          out.data[i]=aiData.data[i]; out.data[i+1]=aiData.data[i+1];
+          out.data[i+2]=aiData.data[i+2]; out.data[i+3]=255;
+        } else {
+          out.data[i]=origData.data[i]; out.data[i+1]=origData.data[i+1];
+          out.data[i+2]=origData.data[i+2]; out.data[i+3]=255;
+        }
+      }
+      ctx.putImageData(out, 0, 0);
+      resolve(c.toDataURL('image/jpeg', 0.95));
+    };
+    aiImg.src = aiDataUrl;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 主入口
+// ═══════════════════════════════════════════════════════════════════════════════
 async function runReplace() {
   setStatus('on', '处理图像…');
   document.getElementById('run-btn').disabled = true;
@@ -411,32 +647,11 @@ async function runReplace() {
   document.getElementById('dl-btn').style.display = 'none';
 
   try {
-    setStatus('on', '发送到 GPT-4o，请稍候（约30-60秒）…');
-
-    const res = await fetch('/api/replace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password:        sitePassword,
-        image:           getOrigDataUrl(),
-        mask:            getMaskDataUrl(),
-        reference_image: await getRefDataUrl(),
-        prompt:          document.getElementById('product-desc').value.trim(),
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
-    // 合成：遮罩外的区域强制用原图像素覆盖，防止 AI 改动周围内容
-    setStatus('on', '合成图像…');
-    resultUrl = await compositeWithOriginal(data.output);
-
+    resultUrl = currentMode === 'composite' ? await runComposite() : await runAI();
     document.getElementById('result-wrap').innerHTML = `<img src="${resultUrl}" alt="result">`;
     document.getElementById('res-badge').textContent = '完成';
     document.getElementById('dl-btn').style.display = '';
-    setStatus('ok', '生成成功 ✓');
-
+    setStatus('ok', '完成 ✓');
   } catch (e) {
     document.getElementById('result-wrap').innerHTML = `<p class="ph" style="color:#c44">${e.message}</p>`;
     document.getElementById('res-badge').textContent = '失败';
@@ -447,53 +662,6 @@ async function runReplace() {
   checkReady();
 }
 
-// 把 AI 结果和原图合成：遮罩区域用 AI 结果，其余完全用原图
-function compositeWithOriginal(aiDataUrl) {
-  return new Promise(resolve => {
-    const aiImg = new Image();
-    aiImg.onload = () => {
-      const w = aiImg.width, h = aiImg.height;
-      const c = document.createElement('canvas'); c.width=w; c.height=h;
-      const ctx = c.getContext('2d');
-
-      // 1. 画原图（缩放到 AI 输出尺寸）
-      ctx.drawImage(origImg, 0, 0, w, h);
-      const origData = ctx.getImageData(0, 0, w, h);
-
-      // 2. 画 AI 结果
-      ctx.drawImage(aiImg, 0, 0, w, h);
-      const aiData = ctx.getImageData(0, 0, w, h);
-
-      // 3. 读取遮罩（缩放到同尺寸）
-      const maskC = document.createElement('canvas'); maskC.width=w; maskC.height=h;
-      maskC.getContext('2d').drawImage(MC, 0, 0, w, h);
-      const maskData = maskC.getContext('2d').getImageData(0, 0, w, h);
-
-      // 4. 合成：遮罩区域用 AI，其余用原图
-      const out = ctx.createImageData(w, h);
-      for (let i=0; i<maskData.data.length; i+=4) {
-        const painted = maskData.data[i+3] > 10; // 涂抹过的区域
-        if (painted) {
-          // 用 AI 生成的像素
-          out.data[i]   = aiData.data[i];
-          out.data[i+1] = aiData.data[i+1];
-          out.data[i+2] = aiData.data[i+2];
-          out.data[i+3] = 255;
-        } else {
-          // 强制用原图像素
-          out.data[i]   = origData.data[i];
-          out.data[i+1] = origData.data[i+1];
-          out.data[i+2] = origData.data[i+2];
-          out.data[i+3] = 255;
-        }
-      }
-      ctx.putImageData(out, 0, 0);
-      resolve(c.toDataURL('image/jpeg', 0.95));
-    };
-    aiImg.src = aiDataUrl;
-  });
-}
-
 function setStatus(type, txt) {
   const d = document.getElementById('s-dot');
   d.className = 'dot'+(type==='on'?' on':type==='ok'?' ok':type==='err'?' err':'');
@@ -501,7 +669,7 @@ function setStatus(type, txt) {
 }
 function dlResult() {
   if (!resultUrl) return;
-  const a = document.createElement('a'); a.href=resultUrl; a.download='product-replaced.png'; a.click();
+  const a = document.createElement('a'); a.href=resultUrl; a.download='product-replaced.jpg'; a.click();
 }
 </script>
 </body>
