@@ -24,9 +24,10 @@ export default async function handler(req, res) {
     const imageBuffer = Buffer.from(image.split(',')[1], 'base64');
     const maskBuffer  = Buffer.from(mask.split(',')[1],  'base64');
 
-    const prompt = userPrompt
-      ? `Replace the selected area with: ${userPrompt}. Keep the same lighting, perspective and scale as the surrounding scene. Photorealistic.`
-      : 'Replace the selected area with the product from the reference image. Keep the same lighting, perspective and scale as the surrounding scene. Photorealistic.';
+    const base = userPrompt
+      ? `Replace ONLY the masked area with: ${userPrompt}.`
+      : 'Replace ONLY the masked area with the product shown in the reference image.';
+    const prompt = `${base} Do NOT change anything outside the masked area. Preserve all text, labels, arrows, other products, and background exactly as they are. Match the same lighting, shadow, perspective, and scale as the other products in the scene. Photorealistic product photography.`;
 
     const formData = new FormData();
     formData.append('model', 'gpt-image-1');

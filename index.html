@@ -428,7 +428,10 @@ async function runReplace() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-    resultUrl = data.output;
+    // 合成：遮罩外的区域强制用原图像素覆盖，防止 AI 改动周围内容
+    setStatus('on', '合成图像…');
+    resultUrl = await compositeWithOriginal(data.output);
+
     document.getElementById('result-wrap').innerHTML = `<img src="${resultUrl}" alt="result">`;
     document.getElementById('res-badge').textContent = '完成';
     document.getElementById('dl-btn').style.display = '';
@@ -442,6 +445,53 @@ async function runReplace() {
 
   document.getElementById('run-btn').disabled = false;
   checkReady();
+}
+
+// 把 AI 结果和原图合成：遮罩区域用 AI 结果，其余完全用原图
+function compositeWithOriginal(aiDataUrl) {
+  return new Promise(resolve => {
+    const aiImg = new Image();
+    aiImg.onload = () => {
+      const w = aiImg.width, h = aiImg.height;
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx = c.getContext('2d');
+
+      // 1. 画原图（缩放到 AI 输出尺寸）
+      ctx.drawImage(origImg, 0, 0, w, h);
+      const origData = ctx.getImageData(0, 0, w, h);
+
+      // 2. 画 AI 结果
+      ctx.drawImage(aiImg, 0, 0, w, h);
+      const aiData = ctx.getImageData(0, 0, w, h);
+
+      // 3. 读取遮罩（缩放到同尺寸）
+      const maskC = document.createElement('canvas'); maskC.width=w; maskC.height=h;
+      maskC.getContext('2d').drawImage(MC, 0, 0, w, h);
+      const maskData = maskC.getContext('2d').getImageData(0, 0, w, h);
+
+      // 4. 合成：遮罩区域用 AI，其余用原图
+      const out = ctx.createImageData(w, h);
+      for (let i=0; i<maskData.data.length; i+=4) {
+        const painted = maskData.data[i+3] > 10; // 涂抹过的区域
+        if (painted) {
+          // 用 AI 生成的像素
+          out.data[i]   = aiData.data[i];
+          out.data[i+1] = aiData.data[i+1];
+          out.data[i+2] = aiData.data[i+2];
+          out.data[i+3] = 255;
+        } else {
+          // 强制用原图像素
+          out.data[i]   = origData.data[i];
+          out.data[i+1] = origData.data[i+1];
+          out.data[i+2] = origData.data[i+2];
+          out.data[i+3] = 255;
+        }
+      }
+      ctx.putImageData(out, 0, 0);
+      resolve(c.toDataURL('image/jpeg', 0.95));
+    };
+    aiImg.src = aiDataUrl;
+  });
 }
 
 function setStatus(type, txt) {
