@@ -1,7 +1,6 @@
 {
   "functions": {
-    "api/replace.js": {
-      "maxDuration": 180
-    }
+    "api/replace.js": { "maxDuration": 180 },
+    "api/flux.js":    { "maxDuration": 60 }
   }
 }
