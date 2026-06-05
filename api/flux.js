@@ -122,15 +122,17 @@ export default async function handler(req, res) {
 }
 
 async function uploadBuffer(buffer, mimeType, filename, key) {
+  // Replicate Files API 要求 multipart/form-data，字段名为 content
+  const formData = new FormData();
+  formData.append('content', new Blob([buffer], { type: mimeType }), filename);
+
   const uploadRes = await fetch('https://api.replicate.com/v1/files', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${key}`,
-      'Content-Type': mimeType,
-      'Content-Length': String(buffer.length),
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      // 不要手动设置 Content-Type，让 fetch 自动加 boundary
     },
-    body: buffer,
+    body: formData,
   });
   if (!uploadRes.ok) {
     const err = await uploadRes.json().catch(() => ({}));
