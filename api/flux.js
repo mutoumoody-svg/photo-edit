@@ -1,5 +1,5 @@
 // FLUX Fill Pro inpainting via Replicate
-// 流程：GPT-4o 视觉描述参考产品 → 上传图到 Replicate → FLUX Fill 生成
+// 流程：GPT-4o 视觉描述参考产品 → 直接用 base64 data URI 调 FLUX Fill
 export const config = {
   api: { bodyParser: { sizeLimit: '15mb' } },
 };
@@ -61,23 +61,8 @@ export default async function handler(req, res) {
       ? `Replace the masked region with: ${productDesc}. Preserve all surrounding content, lighting, shadows, and perspective exactly. Photorealistic product photography.`
       : 'Fill the masked region naturally to match the surrounding scene. Photorealistic.';
 
-    // ── Step 2: 上传原图 + 遮罩到 Replicate Files API ───────────────────────
-    const [imageUrl, maskUrl] = await Promise.all([
-      uploadBuffer(
-        Buffer.from(image.split(',')[1], 'base64'),
-        'image/jpeg',
-        'image.jpg',
-        REPLICATE_KEY,
-      ),
-      uploadBuffer(
-        Buffer.from(mask.split(',')[1], 'base64'),
-        'image/png',
-        'mask.png',
-        REPLICATE_KEY,
-      ),
-    ]);
-
-    // ── Step 3: 创建 FLUX Fill Pro prediction ─────────────────────────────
+    // ── Step 2: 直接用 base64 data URI 创建 FLUX Fill Pro prediction ───────
+    // Replicate 原生支持 data URI，无需先上传文件
     const predRes = await fetch(
       'https://api.replicate.com/v1/models/black-forest-labs/flux-fill-pro/predictions',
       {
@@ -90,10 +75,10 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           input: {
             prompt,
-            image: imageUrl,
-            mask: maskUrl,
+            image: image,   // data:image/jpeg;base64,...
+            mask:  mask,    // data:image/png;base64,...
             output_format: 'jpg',
-            output_quality: 95,
+            safety_tolerance: 6,
             prompt_upsampling: false,
           },
         }),
@@ -101,43 +86,34 @@ export default async function handler(req, res) {
     );
 
     if (!predRes.ok) {
-      const err = await predRes.json().catch(() => ({}));
-      return res.status(predRes.status).json({ error: err.detail || 'Replicate 请求失败' });
+      const errText = await predRes.text().catch(() => '');
+      let detail = errText;
+      try { detail = JSON.parse(errText).detail || errText; } catch (_) {}
+      return res.status(predRes.status).json({
+        error: `创建预测失败 [HTTP ${predRes.status}]: ${detail || '未知错误'}`,
+      });
     }
 
     const pred = await predRes.json();
 
-    // 如果已经同步完成（wait=5 秒内完成）
+    // 已同步完成
     if (pred.status === 'succeeded') {
       const output = Array.isArray(pred.output) ? pred.output[0] : pred.output;
       return res.status(200).json({ status: 'succeeded', output });
     }
 
-    // 否则返回 prediction ID 供前端轮询
+    // 失败
+    if (pred.status === 'failed' || pred.status === 'canceled') {
+      return res.status(500).json({ error: `生成失败: ${pred.error || pred.status}` });
+    }
+
+    // 返回 ID 供前端轮询
+    if (!pred.id) {
+      return res.status(500).json({ error: '未获得 prediction ID，响应: ' + JSON.stringify(pred).slice(0, 200) });
+    }
     return res.status(200).json({ status: pred.status, id: pred.id });
 
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: 'flux.js 异常: ' + e.message });
   }
-}
-
-async function uploadBuffer(buffer, mimeType, filename, key) {
-  // Replicate Files API 要求 multipart/form-data，字段名为 content
-  const formData = new FormData();
-  formData.append('content', new Blob([buffer], { type: mimeType }), filename);
-
-  const uploadRes = await fetch('https://api.replicate.com/v1/files', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${key}`,
-      // 不要手动设置 Content-Type，让 fetch 自动加 boundary
-    },
-    body: formData,
-  });
-  if (!uploadRes.ok) {
-    const err = await uploadRes.json().catch(() => ({}));
-    throw new Error(err.detail || '文件上传失败');
-  }
-  const file = await uploadRes.json();
-  return file.urls?.get || file.url;
 }
